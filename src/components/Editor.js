@@ -115,32 +115,39 @@ const Editor = ({socketRef, roomId, onCodeChange}) => {
 
     useEffect(() => {
         async function init() {
-            editorRef.current = Codemirror.fromTextArea(
-                document.getElementById('realtimeEditor'),
-                {
-                    mode: {name: lang},
-                    theme: editorTheme,
-                    autoCloseTags: true,
-                    autoCloseBrackets: true,
-                    lineNumbers: true,
-                }
-            );
-
-            editorRef.current.on('change', (instance, changes) => {
-                const {origin} = changes;
-                const code = instance.getValue();
-                onCodeChange(code);
-                if (origin !== 'setValue') {
-                    socketRef.current.emit(ACTIONS.CODE_CHANGE, {
-                        roomId,
-                        code,
-                    });
-                }
-            });
-
+          const editorEl = document.getElementById('realtimeEditor');
+          if (!editorEl) return;
+      
+          editorRef.current = Codemirror.fromTextArea(editorEl, {
+            mode: { name: lang },
+            theme: editorTheme,
+            autoCloseTags: true,
+            autoCloseBrackets: true,
+            lineNumbers: true,
+          });
+      
+          // 👇 Ensure codeRef gets initial value after CodeMirror mounts
+          setTimeout(() => {
+            const initialCode = editorRef.current.getValue();
+            onCodeChange(initialCode);
+          }, 100); // delay to ensure DOM is ready
+      
+          editorRef.current.on('change', (instance, changes) => {
+            const { origin } = changes;
+            const code = instance.getValue();
+            onCodeChange(code);
+            if (origin !== 'setValue') {
+              socketRef.current.emit(ACTIONS.CODE_CHANGE, {
+                roomId,
+                code,
+              });
+            }
+          });
         }
+      
         init();
-    }, [lang]);
+      }, [lang]);
+      
 
     useEffect(() => {
         if (socketRef.current) {
